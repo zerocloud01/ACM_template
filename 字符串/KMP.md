@@ -1,8 +1,12 @@
 ## KMP
 求 border + kmp查找
-
+### 模板
+#### 求 border 数组
 ```cpp
-string st;// 从 2 开始
+// 从 2 开始
+string st;// 模式串
+string s;// 查找串
+
 int nxt[N];
 void get_next(string &st)// 求border
 {

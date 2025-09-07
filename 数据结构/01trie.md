@@ -1,4 +1,5 @@
 ## 01trie
+### 模板
 ```cpp
 // 将数组加入trie树
 void insert(int z)
@@ -25,7 +26,7 @@ bool find(int z)
     return ext[p];
 }
 ```
-### 求异或最大值
+#### 求异或最大值
 贪心高位不同的点
 ```cpp
 int get_max(int x)

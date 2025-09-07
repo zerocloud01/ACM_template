@@ -1,3 +1,280 @@
+# 云某人的数据结构
+
+[TOC]
+
+## 单调栈
+栈内元素始终单调（栈顶 **更** 满足要求）
+> 如更大，更小
+```cpp
+vector<int> stp;
+stack<int> st;
+for(int i=1;i<=n;++i)
+{
+	while(st.size() && check(a[i]))	st.pop();
+	stp.push_back(st.size() ? st.top() : -1);
+	st.push(a[i]);
+}
+```
+### 左侧第一个比自己小/大元素
+```cpp
+// 左侧小
+vector<int> ans;
+stack<int> st;
+for(int i=1;i<=n;++i)
+{
+	while(st.size() && st.top() >= a[i])	st.pop();
+	ans.push_back(st.size() ? st.top() : -1);
+	st.push(a[i]);
+}
+// 左侧大
+for(int i=1;i<=n;++i)
+{
+	while(st.size() && st.top() <= a[i])	st.pop();
+	ans.push_back(st.size() ? st.top() : -1);
+	st.push(a[i]);
+}
+```
+
+## 单调队列
+### 滑动窗口
+```cpp
+vector<int> ans;
+deque<int> dq;
+
+// 宽度为 k 的窗口中的最大值
+for(int i=1;i<=n;++i)
+{
+    while(dq.size() && dq.front() <= i-k)	dq.pop_front();
+    while(dq.size() && a[dq.back()] <= a[i])	dq.pop_back();
+    dq.push_back(i);
+    if(i >= k)	ans.push_back(a[dq.front()]);
+}
+// 宽度为 k 的窗口中的最小值
+for(int i=1;i<=n;++i)
+{
+    while(dq.size() && dq.front() <= i-k)	dq.pop_front();
+    while(dq.size() && a[dq.back()] <= a[i])	dq.pop_back();
+    dq.push_back(i);
+    if(i >= k)	ans.push_back(a[dq.front()]);
+}
+```
+
+## 并查集
+### 路径压缩
+```cpp
+int rt[N];
+
+int find(int x)// 找到根节点
+{
+	return rt[x] = (rt[x] == x ? x : find(rt[x]));
+}
+
+void merge(int x,int y)// 合并两联通块
+{
+	rt[find(x)] = find(y);
+}
+for(int i=1;i<=N;++i)   rt[i] = i;
+```
+
+## 01trie
+### 模板
+```cpp
+// 将数组加入trie树
+void insert(int z)
+{
+	int p = 0;
+	for(int i=31;i>=0;--i)
+	{
+		int t = (z>>i)&1;
+		if(!nxt[p][t])	nxt[p][t] = ++ idx;
+		p = nxt[p][t];
+	}
+	ext[p] = true;
+}
+// 判断数字是否在树中
+bool find(int z)
+{
+    int p = 0;
+    for(int i=31;i>=0;--i)
+    {
+        int t = (z>>i)&1;
+        if(!nxt[p][t])	return false;
+        p = nxt[p][t];
+    }
+    return ext[p];
+}
+```
+#### 求异或最大值
+贪心高位不同的点
+```cpp
+int get_max(int x)
+{
+    int res = 0,p = 0;
+    for(int i=31;i>=0;--i)
+    {
+        int t = (x>>i)&1;
+        if(nxt[p][t^1])	res += (1<<i), p = nxt[p][t^1];
+        else if(nxt[p][t])	p = nxt[p][t];
+        else	break;
+    }
+    return res;
+}
+```
+
+## 可持久化01tire
+### 模板
+```cpp
+int n,idx;
+int rt[N],nxt[N<<5][2],cnt[N<<5];
+// 添加节点
+void insert(int z,int &np,int lp)
+{
+    // 切记不要用传入值来修改
+	np = ++ idx;
+	int p = np;
+	for(int i=D;i>=0;--i)
+	{
+		int t = (z>>i)&1;
+		cnt[p] = cnt[lp]+1;
+		nxt[p][0] = nxt[lp][0], nxt[p][1] = nxt[lp][1];
+		nxt[p][t] = ++ idx;
+		p = nxt[p][t], lp = nxt[lp][t];
+	}
+	cnt[p] = cnt[lp] + 1;
+}
+
+// 查询区间内匹配最大值
+int query(int lp,int rp,int z)
+{
+	int res = 0;
+	for(int i=D;i>=0;--i)
+	{
+		int t = (z>>i)&1;
+		if(cnt[nxt[rp][!t]]-cnt[nxt[lp][!t]] > 0)
+		{
+			lp = nxt[lp][!t], rp = nxt[rp][!t];
+			res += (1<<i);
+		}
+		else	lp = nxt[lp][t], rp = nxt[rp][t];
+	}
+	return res;
+}
+
+insert(x,rt[i],rt[i-1]);
+```
+
+## 树状数组
+### 单点修改维护区间和
+```cpp
+int n;
+int a[N], t[N];
+int lowbit(int z)
+{
+    return z&-z;
+}
+void update(int p,int z)// 单点修改
+{
+    for(int i=p;i<=n;i+=lowbit(i))  t[i] += z;
+}
+void query(int l,int r)// 区间查询
+{
+    int res1 = 0, res2 = 0;
+    for(int i=l-1;i>=1;i-=lowbit(i))	res1 += t[i];
+	for(int i=r;i>=1;i-=lowbit(i))		res2 += t[i];
+    return res2-res1;
+}
+```
+### 区间修改维护区间和
+维护差分
+*其实没啥用了, 我会线段树*
+$\sum_{i=1}^n a_i = \sum_{i=1}^n \overbrace{(n+1)d_i}^{t_1} - \sum_{i=1}^n\overbrace{id_i}^{t_2}$
+
+```cpp
+int n;
+vector<int> a(N), t(N),ti(N);
+int lowbit(int i)
+{
+	return i&-i;
+}
+void update(int p,int z)
+{
+	for(int i=p;i<=n;i+=lowbit(i))	t[i] += z, ti[i] += p*z;
+}
+int query(int l,int r)
+{
+	int res1 = 0, res2;
+	for(int i=l-1;i>=1;i-=lowbit(i))	res1 += (l)*t[i] - ti[i];
+	for(int i=r;i>=1;i-=lowbit(i))		res2 += (r+1)*t[i] - ti[i];
+	return res2 - res1;
+}
+```
+
+### 维护逆序对
+按出现顺序依次加入树状数组，每次可得当前小于（大于）等于自己的数目（也就是前面比自己小/大的数目），计算即可得逆序对。
+```c++
+int n,ans;
+vector<int> t(N)
+vector<int> dis,;// dis离散化
+
+int get(int x)// 寻找离散化下标
+{
+	return lower_bound(dis.begin(),dis.end(),x)-dis.begin()+1;
+	// 下标存入树状数组，保证下标从1开始
+}
+
+int lowbit(int z)
+{
+	return z&-z;
+}
+void update(int p)
+{
+	for(int i=p;i<=n;i+=lowbit(i))	t[i] ++;
+}
+int query(int p)
+{
+	int res = 0;
+	for(int i=p;i>=1;i-=lowbit(i))	res += t[i];
+	return res;
+}
+
+void func(void)
+{
+	cin >> n;
+	vector<int> a(n);
+	for(int i=0;i<n;++i)	cin >> a[i];
+	dis = a;
+	sort(dis.begin(),dis.end());
+	dis.erase(unique(dis.begin(),dis.end()),dis.end());
+	for(int i=0;i<n;++i)
+	{
+		ans += i-query(get(a[i]));
+		update(get(a[i]));
+	}
+	cout << ans << '\n';
+}
+```
+
+```cpp
+void init(void)
+{
+	for(int i=1;i<=n;++i)	smx[i][0] = smn[i][0] = ds[i];
+	for(int i=1;i<=20;++i)
+	{
+		for(int j=1;j+(1<<i)-1<=n;++j)
+		{
+			smx[j][i] = max(smx[j][i-1],smx[j+(1<<(i-1))][i-1]);
+			smn[j][i] = min(smn[j][i-1],smn[j+(1<<(i-1))][i-1]);
+		}
+	}
+}
+
+PII find(int l,int r)
+{
+	int k = log2(r-l+1);
+	return {max(smx[l][k],smx[r-(1<<k)+1][k]),min(smn[l][k],smn[r-(1<<k)+1][k])};
+}
+```
+
 ## 线段树
 ### 模板
 #### 区间修改线段树
@@ -775,5 +1052,282 @@ void func(void)
 			// cout << ans << '\n';
 		}
 	}
+}
+```
+
+## 可持久化线段树
+### 主席树
+主席树是可持久化的**权值**线段树
+```cpp
+struct node
+{
+	int cnt, ls, rs;
+};
+
+int n,q,idx,mx;
+vector<int> a(N), dis, rt(N);
+vector<node> t(N<<5);
+int get(int x)
+{
+	return (lpwer_bound(dis.begin(),dis.end(),x) - dis.begin()+1);
+}
+
+void insert(int &p,int pre,int val,int be=1,int ed=mx)
+{
+	p = ++ idx;
+	t[p] = t[pre];
+	t[p].cnt ++;
+	if(be == ed)	return ;
+	int mid = (be+ed) >> 1;
+	if(val <= mid)	insert(t[p].ls,t[pre].ls,val,be,mid);
+	else	insert(t[p].rs,t[pre].rs,val,mid+1,ed);
+}
+
+int query(int lp,int rp,int k,int be=1,int ed=mx) 
+{
+	if(be == ed)	return be;
+	int mid = (be + ed) >> 1, lcnt = t[t[rp].ls].cnt - t[t[lp].ls].cnt;
+	if(k <= lcnt)	return query(t[lp].ls,t[rp].ls,k,be,mid);
+	else	return query(t[lp].rs,t[rp].rs,k-lcnt,mid+1,ed);
+	
+}
+
+void func(void)
+{
+	cin >> n >> q;
+	for(int i=1;i<=n;++i)	cin >> a[i];
+	for(int i=1;i<=n;++i)	dis.push_back(a[i]);
+	sort(dis.begin(),dis.end());
+	dis.erase(unique(dis.begin(),dis.end()),dis.end());
+	mx = dis.size();
+	for(int i=1;i<=n;++i)	insert(rt[i],rt[i-1],get(a[i]));
+	while(q--)
+	{
+		int l,r,k;
+		cin >> l >> r >> k;
+		cout << dis[query(rt[l-1],rt[r],k)-1] << '\n';
+	}
+}
+```
+
+## 树链剖分
+### 轻重链剖分
+**处理：**
+求重链 $O(n)$：
+- 将子树中总结点最多的视为重儿子，因为轻链的大小 $\le sum/2$，所以每次走轻儿子等同于抛弃 $sum/2$ 的点，那么可以保证最终复杂度 $\le n\log n$
+
+链分解 $O(n)$：
+- 重儿子继承父节点值，而轻儿子以本身为链头作为重链继续剖分。最终得到若干重链。	
+
+**操作：**
+链操作 $O$ ($\log n \times$ 区间修改)：
+- dfs序保证每个子树在 `dfn` 上连续，而重链剖分保证每条重链上的点在 `dfn` 上连续。这样就可以对链区间修改
+- 将重链缩为一点后，树的深度 $\le \log n$，那么可以用类似暴力的 $lca$ 求两个重链树的父链，每次会操作所在重链头到该节点的数据。最终两点走到同一链，在操作两点见的数据即可。
+
+子树操作 $O$(区间修改)
+- 利用 `dfn`，子树管辖区间是 $[dfn_x,dfn_x+size_x-1]$
+
+```cpp
+int idx;// dfs序辅助变量
+vector<int> v[N]; 
+int a[N],ta[N];// 节点值 映射dfn值
+int hson[N],top[N],sz[N];// 重儿子 链头 子树大小
+int fa[N],dfn[N],dep[N];// 父节点 dfs序 深度
+
+void dfs_size(int p,int lp)// 求重链
+{
+	fa[p] = lp;
+	dep[p] = dep[lp] + 1;
+	sz[p] = 1;
+	hson[p] = 0;
+	for(auto &i : v[p])
+	{
+		if(i == lp)	continue;
+		dfs_size(i,p);
+		sz[p] += sz[i];
+		if(sz[hson[p]] < sz[i])	hson[p] = i;
+	}
+}
+
+void dfs_chain(int p,int tp)// 链分解
+{
+	top[p] = tp;
+	dfn[p] = ++ idx;
+	ta[idx] = a[p];
+	if(!hson[p])	return;
+	dfs_chain(hson[p],tp);
+	for(auto &i : v[p])
+	{
+		if(i != fa[p] && i != hson[p])	dfs_chain(i,i);
+	}
+}
+
+void put_path(int x,int y)// 操作 x - y 链
+{
+    while(top[x] != top[y])
+	{
+		if(dep[top[x]] < dep[top[y]])	swap(x,y);
+		/*
+        put(dfn[top[x]],dfn[x]);
+        */
+		x = fa[top[x]];
+	}
+	if(dep[x] > dep[y])	swap(x,y);
+	// put(dfn[x],dfn[y],z);
+}
+
+void put_tree(int x)// 操作 x 的所有子树
+{
+	put(dfn[x],dfn[x]+sz[x]-1);
+}
+```
+
+### dsu on tree
+理用重链剖分处理离线**子树信息查询**问题
+> 类似莫队
+
+处理无法轻松合并的信息
+> 线段树做不到或者很麻烦的，比如区间内数的种类
+
+因为不同子树的 `dfn` 只存在包含或者相离，那么父节点是可以利用一个子节点的信息或者说信息数组使用，也就是继承其信息。
+> 因为信息比较复杂，无法简单合并，那么多个点的信息只能用一个了。
+
+根据重链剖分的分析，我们必然是使用重儿子的信息，而轻儿子的信息必须清除重新统计。
+
+本质是逆序的重链剖分。
+```cpp
+int n,idx,
+vector<int> v[N];
+int ans[N];// 子树答案
+int fa[N],sz[N],dfn[N],id[N],hson[N];
+int res;// 当前子树答案
+// int tmp[N]; 辅助数组
+
+void dfs(int p,int lp)// 求重儿子
+{
+	fa[p] = lp;
+	sz[p] = 1;
+	hson[p] = 0;
+	// 因为不需要链信息，所以在第一次就可以直接求dfn
+	dfn[p] = ++ idx;
+	id[idx] = p;
+	for(auto &i : v[p])
+	{
+		if(i == lp)	continue;
+		dfs(i,p);
+		sz[p] += sz[i];
+		if(sz[hson[p]] < sz[i])	hson[p] = i;
+	}
+}
+
+void put(int p)// 操作
+{
+    for(int i=dfn[p];i<dfn[p]+sz[p];++i)
+    {
+        if(id[i] == hson[p])
+        {
+            i = dfn[hson[p]]+sz[hson[p]]-1;
+            // 这里如果直接等于 dfn[hson[p]]+sz[hson[p]]，可能恰好超过 dfn[p]，
+            // 加上特判的码量差不多，就没必要了。
+            continue;
+        }
+        // 辅助数组操作
+        tmp[id[i]] ++;
+        res ++;
+    }
+    return res;
+}
+
+void init(int p)// 清空
+{
+    for(int i=dfn[p];i<dfn[p]+sz[p];++i)    tmp[id[i]] --;
+}
+
+void dsu(int p,bool del)// 求子树信息
+{
+	for(auto &i : v[p])
+	{
+		if(i != fa[p] && i != hson[p])	dsu(i,true);
+	}
+	if(hson[p])	dsu(hson[p],false);
+    put(p);
+	ans[p] = res;
+	if(del)
+	{
+		init(p);
+	}
+}
+```
+
+## 珂朵莉树
+珂朵莉树（Chtholly Tree），又名老司机树 ODT（Old Driver Tree）。起源自 CF896C。
+
+这个名称指代的是一种「使用平衡树（`set`、`map` 等）或链表（`list`、手写链表等）维护颜色段均摊」的技巧，而不是一种特定的数据结构。其核心思想是将值相同的一段区间合并成一个结点处理。相较于传统的线段树等数据结构，对于含有区间覆盖的操作的问题，珂朵莉树可以更加方便地维护每个被覆盖区间的值。
+
+### `set`
+`set` 维护各个区间的 $l,r$ 和值（颜色）$d$
+```cpp
+// 结点
+struct node
+{
+	int l,r,d;
+	bool operator < (const node &i)	const
+	{
+        // 因为一个所有元素组成所有区间，所以不会有重复 l
+		return l < i.l;
+	}
+};
+
+// 将一个区间[l,r]，分割为 [l,x], [x+1,r]，并返回后者指针
+auto split(int x) // 
+{
+	if(x == n+1)	return st.end(); // assign 最后可能取 n+1
+	auto p = st.lower_bound({x,0,0}); // 找 l >= x 值
+	if(p != st.end() && p->l == x)	return p; // l = x 情况
+    // l > x 情况，p-- 后 l < x
+	p --;
+	auto &[l,r,d] = *p;
+	st.erase(p);
+	st.insert({l,x-1,d});// 放回左区间
+	return (st.insert({z,r,x-l+d})).first;// insert 返回值pair<T,bool>
+}
+
+// 对一段区间进行赋值
+void assign(int l,int r,int v)
+{
+    // 取出两端区间, 分成两段并得到下标
+	auto pr = split(r+1);   // 先 l 报错
+	auto pl = split(l);
+    /* 如果要遍历期间区间，用此循环，恰好不访问 pr
+    for(auto p=pl;i!=pr;++p) func() */
+	st.erase(pl,pr);// erase性质，删除[l,r)
+	st.insert({l,r,v});
+}
+// 新建set
+set<node> st;
+```
+
+### `map`
+由于珂朵莉树存储的区间是连续的，我们不一定要记下右端点是什么。不妨使用一个 `map<int, int> mp`; 存储所有区间，其键维护左端点，其值维护其对应的左端点到下一个左端点之前的值。
+
+初始化时，如题目要求维护位置 1 到 n 的信息，则调用 `mp[1] = -1`，`mp[n + 1] = -1` 表示将 `[1,n+1)` 即 `[1, n]` 都设为特殊值 $-1$，`[n+1, +\infty)` 这个区间当作哨兵使用，也可以对它进行初始化。
+
+```cpp
+void split(int x)
+{
+    // 找到左端点小于等于 x 的区间。
+    auto p = prev(mp.upper_bound(x));  // prev 找到该节点上一个位置的迭代器
+    mp[x] = p->second;  // 设立新的区间，并将上一个区间储存的值复制给本区间。
+}
+
+void assign(int l, int r, int v) 
+{  
+    split(l);
+    split(r);// 注意，这里的r是区间右端点+1
+    auto p = mp.find(l);
+    while(p->first != r)  p = mp.erase(it);// erase会返回下个元素的迭代器
+    /* 如果要遍历期间区间，用此循环
+     while(it->first != r)  p = next(it)*/
+    mp[l] = v;
 }
 ```

@@ -52,8 +52,151 @@ void query_acam(string &st)
 	}
 }
 ```
+### 套路
+#### 反复删除添加模式串
+因为acam是离线算法，所以只能先把模式串全部加入建立trie图，然后再用数据结构维护。
 
 ### 题目
+#### 模式串出现总次数
+- **多次**查询一个字符串中模式串出现的**总次数**。
+- 反复删除添加模式串
+
+离线维护。
+
+因为模式串出现次数可以维护子树和得到，但这题有多次询问，每个询问只能使用 $O(|S|)$ 的时间，如果每次都遍历fail树会tle。
+
+但是因为只需要求总次数，那么我们可以反向考虑，把单点修改区间查询改为区间修改单点查询，每次查询到一个模式串，那么在其fail树上的父亲节点都必然出现一次，这样也可以求到总次数。
+
+> 加上剖分可以用区间修改+区间查询维护
+
+```cpp
+int n,k,idx,tot;
+int mp[N],dfn[N],sz[N];
+int nxt[N][D],fail[N];
+vector<int> ft[N];
+bitset<N> vis;
+int t[N],ti[N];
+
+int lowbit(int i)
+{
+	return i&-i;
+}
+void put(int l,int r,int z)
+{
+	for(int i=l;i<=tot;i+=lowbit(i))	t[i] += z, ti[i] += l*z;
+	for(int i=r+1;i<=tot;i+=lowbit(i))	t[i] -= z, ti[i] -= (r+1)*z;
+}
+int query(int l,int r)
+{
+	int res = 0;
+	for(int i=l-1;i>=1;i-=lowbit(i))	res -= (l)*t[i] - ti[i];
+	for(int i=r;i>=1;i-=lowbit(i))		res += (r+1)*t[i] - ti[i];
+	return res;
+}
+
+void insert(string &st,int id)
+{
+	int p = 0;
+	for(int i=0;i<st.size();++i)
+	{
+		int c = st[i]-'a';
+		if(!nxt[p][c])	nxt[p][c] = ++ idx;
+		p = nxt[p][c];
+	}
+	mp[id] = p;
+}
+
+void dfs(int p)
+{
+	dfn[p] = ++ tot;
+	sz[p] = 1;
+	for(auto &i : ft[p])
+	{
+		dfs(i);
+		sz[p] += sz[i];
+	}
+}
+
+void build_acam(void)
+{
+	queue<int> q;
+	for(int i=0;i<D;++i)
+	{
+		if(nxt[0][i])
+		{
+			ft[0].push_back(nxt[0][i]);
+			q.push(nxt[0][i]);
+		}
+	}
+	while(q.size())
+	{
+		int p = q.front();	q.pop();
+		for(int i=0;i<D;++i)
+		{
+			if(!nxt[p][i])	nxt[p][i] = nxt[fail[p]][i];
+			else
+			{
+				int ps = nxt[p][i];	q.push(ps);
+				fail[ps] = nxt[fail[p]][i];
+				ft[fail[ps]].push_back(ps);
+			}
+		}
+	}
+	dfs(0);
+}
+
+int query_acam(string &st)
+{
+	int res = 0;
+	for(int i=0,p=0;i<st.size();++i)
+	{
+		int c = st[i]-'a';
+		p = nxt[p][c];
+		res += query(dfn[p],dfn[p]);
+	}
+	return res;
+}
+
+void func(void)
+{
+	cin >> n >> k;
+	vector<string> a(k+1);
+	for(int i=1;i<=k;++i)
+	{
+		cin >> a[i];
+		insert(a[i],i);
+	}
+	build_acam();
+	for(int i=1;i<=k;++i)
+	{
+		put(dfn[mp[i]],dfn[mp[i]]+sz[mp[i]]-1,1);
+		vis[i] = true;
+	}
+	while(n --)
+	{
+		char c;	cin >> c;
+		if(c == '+' || c == '-')
+		{
+			int t;	cin >> t;
+			if(!vis[t] && c == '+')		put(dfn[mp[t]],dfn[mp[t]]+sz[mp[t]]-1,1), vis[t] = true;
+			else if(vis[t] && c == '-')	put(dfn[mp[t]],dfn[mp[t]]+sz[mp[t]]-1,-1), vis[t] = false;
+		}
+		else
+		{
+			string s;	cin >> s;
+			cout << query_acam(s) << '\n';
+		}
+	}
+}
+```
+
+
+
+
+
+
+
+
 #### 子串删除问题
 给定一个字符串 $S$ 和一个字典，反复删除 $S$ 在字典出现的第一个模式串
 

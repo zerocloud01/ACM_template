@@ -7,6 +7,7 @@ trie树+fail（失配）指针
 int n,idx;
 int nxt[N][26],fail[N];
 bitset<N> ext;
+vector<int> ft[N];
 // trie
 void insert(string &st,int id)
 {
@@ -24,7 +25,7 @@ void build_acam(void)
 {
 	queue<int> q;
 	for(int i=0;i<D;++i)
-		if(nxt[0][i])	q.push(nxt[0][i]);
+		if(nxt[0][i])	q.push(nxt[0][i]), ft[0].push_back(nxt[0][i]);
 	while(q.size())
 	{
 		int p = q.front();	q.pop();
@@ -35,8 +36,8 @@ void build_acam(void)
             {
                 int ps = nxt[p][i];	q.push(ps);
                 fail[ps] = nxt[fail[p]][i];
+				ft[fail[ps]].push_back(ps);
             }
-			
 		}
 	}
 }
@@ -344,7 +345,10 @@ void func(void)
 ```
 
 #### acam dp
-##### P3041 [USACO12JAN] Video Game G
+acam_dp 好像相对比较套路，都是 $dp_{i,j}$，表示在前 $i$ 个状态，到达trie图第 $j$ 个节点的状态。$dp_{i,nxt_j} \leftarrow dp_{i-1,j}$。
+
+##### 随机串最多出现多少模式串
+P3041 [USACO12JAN] Video Game G
 Bessie 在玩一款游戏，该游戏只有三个技能键 `A`，`B`，`C` 可用，但这些键可用形成 $n$ 种特定的组合技。第 $i$ 个组合技用一个字符串 $s_i$ 表示。
 
 Bessie 会输入一个长度为 $k$ 的字符串 $t$，而一个组合技每在 $t$ 中出现一次，Bessie 就会获得一分。$s_i$ 在 $t$ 中出现一次指的是 $s_i$ 是 $t$ 从某个位置起的连续子串。如果 $s_i$ 从 $t$ 的多个位置起都是连续子串，那么算作 $s_i$ 出现了多次。
@@ -420,7 +424,8 @@ void func(void)
 }
 ```
 
-##### P4052 [JSOI2007] 文本生成器
+##### 随机串存在模式串的串总数
+P4052 [JSOI2007] 文本生成器
 JSOI 交给队员 ZYX 一个任务，编制一个称之为“文本生成器”的电脑软件：该软件的使用者是一些低幼人群，他们现在使用的是 GW 文本生成器 v6 版。
 
 该软件可以随机生成一些文章——总是生成一篇长度固定且完全随机的文章。 也就是说，生成的文章中每个字符都是完全随机的。如果一篇文章中至少包含使用者们了解的一个单词，那么我们说这篇文章是可读的（我们称文章 $s$ 包含单词 $t$，当且仅当单词 $t$ 是文章 $s$ 的子串）。但是，即使按照这样的标准，使用者现在使用的 GW 文本生成器 v6 版所生成的文章也是几乎完全不可读的。ZYX 需要指出 GW 文本生成器 v6 生成的所有文本中，可读文本的数量，以便能够成功获得 v7 更新版。你能帮助他吗？
@@ -493,6 +498,95 @@ void func(void)
 	int ans = 1;
 	for(int i=1;i<=m;++i)	ans = (ans*26)%M;
 	for(int i=0;i<=idx;++i)	ans = (ans-dp[m][i]+M)%M;
+	cout << ans << '\n';
+}
+```
+
+##### 随机串存在所有模式串的串总数
+这题只有 $n \le 10$ 个串，用状压表示即可。
+abc419_f
+```cpp
+int n,L,idx;
+int nxt[N][D],fail[N];
+int ext[N];
+int dp[N][N][N];
+vector<int> ft[N];
+
+void insert(string &st,int id)
+{
+	int p = 0;
+	for(int i=0;i<st.size();++i)
+	{
+		int c = st[i]-'a';
+		if(!nxt[p][c])	nxt[p][c] = ++ idx;
+		p = nxt[p][c];
+	}
+	ext[p] = 1<<id;
+}
+
+void dfs(int p)
+{
+	for(auto &i : ft[p])
+	{
+		ext[i] |= ext[p];
+		dfs(i);
+	}
+}
+
+void build_acam(void)
+{
+	queue<int> q;
+	for(int i=0;i<D;++i)
+	{
+		if(nxt[0][i])
+		{
+			ft[0].push_back(nxt[0][i]);
+			q.push(nxt[0][i]);
+		}
+	}
+	while(q.size())
+	{
+		int p = q.front();	q.pop();
+		for(int i=0;i<D;++i)
+		{
+			if(!nxt[p][i])	nxt[p][i] = nxt[fail[p]][i];
+			else
+			{
+				int ps = nxt[p][i];	q.push(ps);
+				fail[ps] = nxt[fail[p]][i];
+				ft[fail[ps]].push_back(ps);
+			}
+		}
+	}
+	dfs(0);
+}
+
+void func(void)
+{
+	cin >> n >> L;
+	for(int i=0;i<n;++i)
+	{
+		string st;	cin >> st;
+		insert(st,i);
+	}
+	build_acam();
+	dp[0][0][0] = 1;
+	for(int i=1;i<=L;++i)
+	{
+		for(int j=0;j<=idx;++j)
+		{
+			for(int k=0;k<(1<<n);++k)
+			{
+				for(int x=0;x<D;++x)
+				{
+					int p = nxt[j][x], y = k|(ext[p]);
+					dp[i][p][y] = (dp[i][p][y] + dp[i-1][j][k])%P;
+				}
+			}
+		}
+	}
+	int ans = 0;
+	for(int i=0;i<=idx;++i)	ans = (ans + dp[L][i][(1<<n)-1])%P;
 	cout << ans << '\n';
 }
 ```

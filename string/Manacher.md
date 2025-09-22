@@ -4,21 +4,22 @@
 
 $R_i$ 表示以 $i$ 为回文中心的回文串的回文半径
 ```cpp
-int R[N];
+int L[N];
 
 void manacher(string &s)
 {
 	string st = "_#";
 	for(auto &i : s)	st += i, st += '#';
-	int p = 0,ans = 0;
-	R[0] = 1;
-	for(int i=2;i<st.size();++i)
+	int p = 0;
+	L[0] = 1;
+	for(int i=1;i<st.size();++i)
 	{
-		int r = p+R[p]-1;
-		if(i <= p)	R[i] = min(R[2*p-i],p-i+1);
-		while(st[i-R[i]] == st[i+R[i]])	R[i] ++;
-		if(i+R[i]-1 > r)	p = i;
+		int r = p+L[p]-1;
+		if(i <= r)	L[i] = min(L[2*p-i],r-i+1);
+		else	L[i] = 1;
+		while(st[i-L[i]] == st[i+L[i]])	L[i] ++;
+		if(i+L[i]-1 > r)	p = i;
 	}
 }
 ```
-实际回文串长度 $= R_i - 1$
+实际回文串长度 $= L_i - 1$

@@ -2,6 +2,8 @@
 ### 模板
 ```cpp
 // 将数组加入trie树
+int nxt[N][2]
+bitset<N> ext;
 void insert(int z)
 {
 	int p = 0;
@@ -11,7 +13,7 @@ void insert(int z)
 		if(!nxt[p][t])	nxt[p][t] = ++ idx;
 		p = nxt[p][t];
 	}
-	ext[p] = true;
+	ext[p] = true;// 结束标记
 }
 // 判断数字是否在树中
 bool find(int z)

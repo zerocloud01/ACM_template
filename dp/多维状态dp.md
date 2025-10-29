@@ -1,73 +1,4 @@
-# 云某人的dp
-[TOC]
-## 背包
-### 01背包
-#### 表示容量，存储价值
-```cpp
-for(int i=1;i<=m;++i)// 层数
-{
-    for(int j=t;j>=t[i];--j)// 容量
-    {
-        dp[j] = max(dp[j],dp[j-t[i]]+v[i]);
-    }
-}
-```
-#### 表示价值，存储容量
-```cpp
-for(int i=1;i<=m;++i)// 层数
-{
-    for(int j=V;j>=t[i];--j)// 价值
-    {
-        if(dp[j-v[i]] + w[i] <= t)	dp[j] = min(dp[j],dp[j-v[i]]+w[i]);
-    }
-}
-```
-### 完全背包
-```cpp
-for(int i=1;i<=m;++i)// 层数
-{
-    for(int j=t[i];j<=t;++j)// 容量
-    {
-        dp[j] = max(dp[j],dp[j-t[i]]+v[i]);
-    }
-}
-```
-
-## 区间dp
-### 朴素区间dp
-$O(n^3)$
-$dp_{i,j}$ 表示从 $l$ 到 $r$ 的区间
-每次枚举区间长度 - 起始点 - 间断点
-> 枚举区间端点会比枚举起点$+$长度好实现一些
-```cpp
-for(int i=2;i<=n;++i)
-	{
-		for(int j=1;j+i-1<=n;++j)
-		{
-			for(int k=j;k<j+i-1;++k)
-			{
-				dp[j][j+i-1] = min(dp[j][j+i-1],dp[j][k]+dp[k+1][j+i-1]+x);
-			}
-		}
-	}
-```
-
-## 数据结构优化dp
-### RMQ类
-比如每次需要从前面最大/最小的数中转移而来，而 `dp` 值是动态的，就需要借助一些维护动态RMQ的数据结构，比如线段树/树状数组(只能维护$1 \sim x$的)
-
-[TOC]
-## 状态dp
-其实这里记录的应该叫**状压dp**
-但是状压通常指传统的二进制压缩，但这里有些类型无二进制压缩，而只是依托于其他状态转移。
-### 状压dp
-- `__builtin_popcount(x)` 二进制 $1$ 的个数，O(1)
-
-### 子集dp
-`sos_dp`
-一个集合的状态，由其所以子集转移而来，为了防止重复记录，一般每次只新增一个元素。
-
-### 多维状态DP
+## 多维状态DP
 `dp` 多维表示为题目的条件/状态
 #### 题目A
 在 $n$ 层的楼中，Pak Chanek可以操作三台电梯，他将在接下来的 $Q$ 天里工作。一开始，所有电梯都位于第 1 层，且均为开启状态。在每一天，恰好会发生以下两种事件之一：
@@ -248,8 +179,6 @@ $n \times n^3$ 绝对不可能接受。
 因为进行了数组位移，那么转移方程和过程都要变化。
 每次转移将每个练习的第 $1,2,3$ 中操作整合到一起，具体可以看下列代码。
 
-
-
 **code**
 ```cpp
 const int N = 1e3+3;
@@ -297,38 +226,90 @@ void func(void)
 }
 ```
 
-## 子序列/子串问题
-|子序列|子串|
-|-|-|
-|不连续|连续|
-### LCS - 最长公共子序列
-求长度正反皆可，但如果需要还原，或许反向更好，因为需要反向溯源求串。
+### 题目C
+[24ICPC成都B]
+这题相对简单很多。
+
+$dp_{t,i,j,op}$ 表示在第 $t$ 个人，$?$ 有 $i$ 个穿 $a$，$j$ 个穿 $b$，上一个人穿为 $op$ 的方案数。
+转移可看代码，回答需要三维前缀和
 ```cpp
-// 求长度部分
-int dp[N][N];
-for(int i=L1;i>=1;--i)
+int n,q;
+int dp[2][N][N][3];
+int s[N][N][N];
+ 
+void add(int &x,int y)
 {
-    for(int j=L2;j>=1;--j)
-    {
-        // 如果两个字符相同，则可以尝试让串长度 +1
-        if(s1[i] == s2[j])	dp[i][j] = dp[i+1][j+1] + 1;
-        // 不同则继承上一个串
-        dp[i][j] = max({dp[i][j],dp[i+1][j],dp[i][j+1]});
-    }
+    x = (x+y)%M;
 }
-// 反向溯源
-int i=1,j=1;
-string ans;
-while(i <= L1 && j <= L2)
+ 
+void func(void)
 {
-    // 如果两个字符相同，则加入答案
-    if(s1[i] == s2[j])
+    cin >> n >> q;
+    string st;    cin >> st;
+    st = '_' + st;
+    int op = 0, m = (n+1)>>1, cnt = 0;
+    char c = st[1];    
+    cnt += c == '?';
+    if(c == '?')
     {
-        ans += s1[i];
-        i ++, j ++;
+        dp[op][1][0][0] = 1;
+        dp[op][0][1][1] = 1;
+        dp[op][0][0][2] = 1;
     }
-    // 否则回归较大的数
-    else (dp[i+1][j] > dp[i][j+1] ? i ++ : j ++);
+    else dp[op][0][0][c-'a'] = 1;
+    for(int i=2;i<=n;++i)
+    {
+        c = st[i];    
+        for(int x=0;x<=cnt+1;++x)
+        {
+            for(int y=0;y<=cnt+1;++y)
+            {
+                for(int t=0;t<3;++t)    dp[op^1][x][y][t] = 0;
+            }
+        }
+        for(int x=0;x<=cnt;++x)
+        {
+            for(int y=0;y<=cnt-x;++y)
+            {
+                if(c == '?')
+                {
+                    add(dp[op^1][x+1][y][0], (dp[op][x][y][1]+dp[op][x][y][2])%M);
+                    add(dp[op^1][x][y+1][1], (dp[op][x][y][0]+dp[op][x][y][2])%M);
+                    add(dp[op^1][x][y][2],   (dp[op][x][y][0]+dp[op][x][y][1])%M);
+                }
+                if(c == 'a')    dp[op^1][x][y][0] = (dp[op][x][y][1]+dp[op][x][y][2])%M;
+                if(c == 'b')    dp[op^1][x][y][1] = (dp[op][x][y][0]+dp[op][x][y][2])%M;
+                if(c == 'c')    dp[op^1][x][y][2] = (dp[op][x][y][0]+dp[op][x][y][1])%M;
+            }
+        }
+        cnt += c == '?';
+        op ^= 1;
+    }
+    for(int i=0;i<=cnt;++i)
+    {
+        for(int j=0;j<=cnt-i;++j)
+        {
+            int k = cnt-i-j;
+            for(int t=0;t<3;++t)    add(s[i+1][j+1][k+1],dp[op][i][j][t]);
+        }
+    }
+    for(int i=1;i<=n+1;++i)
+    {
+        for(int j=1;j<=n+1;++j)
+        {
+            for(int k=1;k<=n+1;++k)    
+            {
+                add(s[i][j][k], ((s[i-1][j][k]+s[i][j-1][k])%M + s[i][j][k-1])%M);
+                add(s[i][j][k], (M-((s[i-1][j-1][k]+s[i-1][j][k-1])%M + s[i][j-1][k-1])%M)%M);
+                add(s[i][j][k], s[i-1][j-1][k-1]);
+            }
+ 
+        }
+    }
+    while(q --)
+    {
+        int x,y,z;    cin >> x >> y >> z;
+        cout << s[x+1][y+1][z+1] << '\n';
+    }
 }
 ```
-

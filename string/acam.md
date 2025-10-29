@@ -31,7 +31,7 @@ void build_acam(void)
 		int p = q.front();	q.pop();
 		for(int i=0;i<26;++i)
 		{
-			if(!nxt[p][i]) nxt[p][i] = nxt[fail[p]][i];
+			if(!nxt[p][i])	nxt[p][i] = nxt[fail[p]][i];
             else
             {
                 int ps = nxt[p][i];	q.push(ps);
@@ -191,13 +191,6 @@ void func(void)
 }
 ```
 
-
-
-
-
-
-
-
 #### 子串删除问题
 给定一个字符串 $S$ 和一个字典，反复删除 $S$ 在字典出现的第一个模式串
 
@@ -356,7 +349,7 @@ Bessie 会输入一个长度为 $k$ 的字符串 $t$，而一个组合技每在 
 若 Bessie 输入了恰好 $k$ 个字符，则她最多能获得多少分？
 
 **solution**
-`dp[i][j]` 表示长度为 $i$ 的以 acam节点$j$ 为结尾字符串最大 $dp$ 值
+`dp[i][j]` 表示长度为 $i$ 的以 acam 节点$j$ 为结尾字符串最大 $dp$ 值
 
 那么dp每次就可以从acam树上的父节点转移到子节点
 ```cpp
@@ -587,6 +580,139 @@ void func(void)
 	}
 	int ans = 0;
 	for(int i=0;i<=idx;++i)	ans = (ans + dp[L][i][(1<<n)-1])%P;
+	cout << ans << '\n';
+}
+```
+
+##### 随机串与双串匹配
+[L. Longest Common Substring](https://codeforces.com/gym/105537/problem/L)
+题目求长度为 $n,m$ 的串的 $lcs = w$，且 $|w| \le 3$
+
+使用 $sosdp$。在 $acam$ 中填充所有 $len \le |w|+1$ 的串，用于转移。
+
+若是 $S$ 中出现的 $|w|+1$ 在 $T$ 中不出现，且二者都出现 $w$ 则 $lcp = w$
+所以 $|w|+1$ 最多只有 $2^{4}$ 个，用一个 $2^4$ 位的二进制数可以表示。
+
+所以用dp求出各个 $k+1$ 的出现次数，以及是否包含 $w$。
+然后用 $f,g$ 记录 $S,T$ 的对应的结果，且对其中一个把子集合并。
+
+最后用上述方法求解即可。
+
+```cpp
+const int N = 100;
+const int D = (1<<16);
+
+int n,m,k,idx;
+int dp[2][2][N][D],f[D],g[D];
+int nxt[N][2],fail[N];
+bool hw[N];
+vector<int> ft[N];
+int ext[N];
+// trie
+void insert(string &st,bool op,int id)
+{
+	int p = 0;
+	for(int i=0;i<st.size();++i)
+	{
+		int c = st[i]-'0';
+		if(!nxt[p][c])	nxt[p][c] = ++ idx;
+		p = nxt[p][c];
+	}
+	if(!hw[p])	hw[p] = op;
+	if(id != -1)	ext[p] = (1<<id);
+}
+// acam
+void build_acam(void)
+{
+	queue<int> q;
+	for(int i=0;i<2;++i)
+		if(nxt[0][i])	q.push(nxt[0][i]), ft[0].push_back(nxt[0][i]);
+	while(q.size())
+	{
+		int p = q.front();	q.pop();
+		for(int i=0;i<2;++i)
+		{
+			if(!nxt[p][i])	nxt[p][i] = nxt[fail[p]][i];
+			else
+			{
+				int ps = nxt[p][i];	q.push(ps);
+				fail[ps] = nxt[fail[p]][i];
+				ft[fail[ps]].push_back(ps);
+			}
+		}
+	}
+}
+
+void dfs(int p)
+{
+	for(auto &i : ft[p])
+	{
+		hw[i] |= hw[p];
+		dfs(i);
+	}
+}
+
+void func(void)
+{
+	cin >> n >> m >> k;
+	string w;	cin >> w;
+	insert(w,true,-1);
+	for(int L=1;L<=(k+1);++L)
+	{
+		for(int i=0;i<(1<<L);++i)
+		{
+			string s;
+			for(int j=0;j<L;++j)	s += char(((i>>j)&1) + '0');
+			if(L == k+1)	insert(s,false,i);
+			else	insert(s,false,-1);
+		}
+	}
+	build_acam();
+	dfs(0);
+	dp[0][0][0][0] = 1;
+	int op = 0,cnt = (1<<(k+1)),sum = 1<<cnt;
+	for(int L=1;L<=max(n,m);++L,op^=1)
+	{
+		memset(dp[op^1],0,sizeof(dp[op^1]));
+		for(int wf=0;wf<2;++wf)
+		{
+			for(int p=0;p<=idx;++p)
+			{
+				for(int id=0;id<sum;++id)
+				{
+					for(int t=0;t<2;++t)
+					{
+						int x = nxt[p][t];
+						int j = wf|hw[x];
+						int y = id|ext[x];
+						dp[op^1][j][x][y] = ((i64)dp[op^1][j][x][y] + dp[op][wf][p][id])%P;
+					}
+				}
+			}
+		}
+		if(L == n)
+		{
+			for(int p=0;p<=idx;++p)
+			{		
+				for(int id=0;id<sum;++id)	f[id] = ((i64)f[id]+dp[op^1][true][p][id])%P;
+			}
+		}
+		if(L == m)
+		{
+			for(int p=0;p<=idx;++p)
+			{		
+				for(int id=0;id<sum;++id)	g[id] = ((i64)g[id]+dp[op^1][true][p][id])%P;
+			}
+		}
+	}
+	for(int i=0;i<cnt;++i)
+	{
+		for(int j=0;j<sum;++j)
+			if((j>>i)&1)	f[j] = ((i64)f[j] + f[j^(1<<i)])%P;
+	}
+	int all = sum-1;
+	i64 ans = 0;
+	for(int i=0;i<sum;++i)	ans = (ans + (i64)f[all^i]*g[i]%P)%P;
 	cout << ans << '\n';
 }
 ```

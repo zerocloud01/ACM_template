@@ -10,7 +10,7 @@ string s;// 查找串
 int nxt[N];
 void get_next(string &st)// 求border
 {
-    for(int i=2;i<=st.size();++i)
+    for(int i=2;i<st.size();++i)
     {
         nxt[i] = nxt[i-1];
         while(nxt[i] && st[nxt[i]+1] != st[i])  nxt[i] = nxt[nxt[i]];

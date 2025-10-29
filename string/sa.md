@@ -30,6 +30,8 @@ $Heigth_i = LCP(S_i,S_{sa[rk_{i}-1]})$
 这里用前缀倍增法，借助基数排序求后缀数组。
 复杂度 $O(n \log n)$
 ```cpp
+const int D = 128;
+
 struct SA
 {
 	int L;
@@ -174,3 +176,7 @@ void func(void)
 	cout << ans << '\n';
 }
 ```
+
+#### 字符串拼接
+
+https://codeforces.com/gym/105487/problem/I
